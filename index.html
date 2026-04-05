@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orbital Daily · Portal Espacial</title>
+
+  <!-- Favicon SVG inline — funciona sin archivos extra -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230a0a0a'/><text y='78' x='50' text-anchor='middle' font-size='70'>🚀</text></svg>">
+
+  <!-- SEO & Twitter/X card -->
+  <meta name="description" content="Portal espacial automático: NASA, SpaceX, ciencia y lanzamientos. Sin backend, actualizado cada 24 h." />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="Orbital Daily · Portal Espacial" />
+  <meta name="twitter:description" content="NASA, SpaceX, arXiv, lanzamientos. Actualización automática, sin backend." />
+
+  <!-- Fuentes retro-terminal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ==========================================
+       TOKENS — Paleta KernelGarden
+       Para cambiar colores: edita estas variables.
+       Para cambiar fuentes: reemplaza el @import de Google Fonts
+       y actualiza --fp, --fm, --fmaq abajo.
+    ========================================== */
+    :root {
+      --negro:       #0a0a0a;
+      --negro-s:     #111111;
+      --negro-c:     #0e0e0e;
+      --dorado:      #c9a84c;
+      --dorado-c:    #e8c96b;
+      --dorado-d:    #55451c;
+      --dorado-glow: rgba(201,168,76,0.09);
+      --alb:         #d4956a;
+      --cafe:        #8b6242;
+      --crema:       #f0e6d3;
+      --gris:        #202020;
+      --gris-l:      #2c2c2c;
+      --texto:       #d6c9b0;
+      --texto-m:     #7a6f5a;
+      --texto-d:     #3a3530;
+
+      --fp:  'Press Start 2P', monospace;   /* pixel — headers */
+      --fm:  'Share Tech Mono', monospace;  /* mono — body */
+      --fmaq:'Special Elite', cursive;      /* máquina de escribir */
+
+      --r: 3px;
+      --t: 0.16s ease;
+      --sh: 0 4px 20px rgba(0,0,0,0.7);
+      --sh-g: 0 0 22px rgba(201,168,76,0.11);
+    }
+
+    /* ==========================================
+       RESET
+    ========================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--negro);
+      color: var(--texto);
+      font-family: var(--fm);
+      font-size: 15px;
+      line-height: 1.7;
+      background-image:
+        linear-gradient(rgba(201,168,76,.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,.022) 1px, transparent 1px);
+      background-size: 40px 40px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    img { max-width: 100%; display: block; }
+    a   { color: inherit; text-decoration: none; }
+    button { cursor: pointer; border: none; background: none; font: inherit; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--negro); }
+    ::-webkit-scrollbar-thumb { background: var(--dorado-d); border-radius: 2px; }
+
+    /* Scanlines decorativas */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg,rgba(0,0,0,.055) 0px,rgba(0,0,0,.055) 1px,transparent 1px,transparent 3px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ==========================================
+       LAYOUT
+    ========================================== */
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 28px; }
+    section { padding: 80px 0; }
+
+    .sh { margin-bottom: 46px; }
+    .sh-label {
+      font-family: var(--fp);
+      font-size: 0.48rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--dorado);
+      margin-bottom: 10px;
+    }
+    .sh-title {
+      font-family: var(--fmaq);
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      color: var(--crema);
+      margin-bottom: 12px;
+    }
+    .sh-line { width: 68px; height: 2px; background: linear-gradient(90deg,var(--dorado),var(--cafe)); }
+
+    /* ==========================================
+       HEADER
+    ========================================== */
+    header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(10,10,10,.97);
+      border-bottom: 2px solid var(--dorado);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .hdr { display:flex; align-items:center; justify-content:space-between; height:56px; gap:16px; }
+
+    .logo {
+      font-family: var(--fp);
+      font-size: 0.58rem;
+      color: var(--dorado);
+      letter-spacing: 3px;
+      text-shadow: 0 0 14px rgba(201,168,76,.38);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .logo em { font-style:normal; color:var(--alb); }
+
+    nav { display:flex; gap:2px; }
+    nav a {
+      font-family: var(--fm);
+      font-size: 0.72rem;
+      color: var(--texto-m);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 6px 12px;
+      border: 1px solid transparent;
+      transition: color var(--t), border-color var(--t);
+    }
+    nav a:hover { color:var(--dorado); border-color:var(--dorado-d); }
+
+    .hdr-r { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+
+    #ts { font-family:var(--fm); font-size:.62rem; color:var(--texto-d); white-space:nowrap; }
+
+    .vpill {
+      display:flex; align-items:center; gap:8px;
+      font-family:var(--fp); font-size:0.42rem;
+      color:var(--texto-m);
+      border: 1px solid var(--gris-l);
+      padding: 6px 12px;
+      background: var(--negro-s);
+      letter-spacing:1px;
+      white-space:nowrap;
+    }
+    .vdot { width:6px;height:6px;border-radius:50%;background:var(--dorado);animation:vpulse 2.2s ease-in-out infinite; }
+    @keyframes vpulse{0%,100%{opacity:1}50%{opacity:.18}}
+    #vc { color:var(--dorado-c); }
+
+    /* ==========================================
+       CURSOR PARPADEANTE
+    ========================================== */
+    .cursor {
+      display:inline-block;width:10px;height:1em;
+      background:var(--dorado);vertical-align:middle;margin-left:3px;
+      animation:cur 1s step-end infinite;
+    }
+    @keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+
+    /* ==========================================
+       HERO — NASA APOD
+    ========================================== */
+    #hero {
+      min-height: 90vh;
+      position: relative;
+      display: flex; align-items: flex-end;
+      overflow: hidden;
+    }
+    #hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center,#1a1208 0%,var(--negro) 100%) center/cover no-repeat;
+      transition: opacity .9s ease;
+    }
+    #hero-bg::after {
+      content:''; position:absolute; inset:0;
+      background: linear-gradient(to bottom,rgba(10,10,10,0) 0%,rgba(10,10,10,.12) 32%,rgba(10,10,10,.78) 70%,var(--negro) 100%);
+    }
+    #hero::before,#hero::after {
+      content:'';position:absolute;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,transparent,var(--dorado),transparent);z-index:2;
+    }
+    #hero::before{top:0;}#hero::after{bottom:0;}
+
+    .hero-c { position:relative;z-index:3;padding:64px 28px;max-width:860px; }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      font-family:var(--fp); font-size:0.4rem;
+      letter-spacing:.18em; text-transform:uppercase;
+      color:var(--dorado);
+      border:1px solid var(--dorado-d);
+      background:rgba(201,168,76,.05);
+      padding:6px 14px; margin-bottom:22px;
+    }
+    .hero-badge::before{content:'▶';font-size:6px;}
+    #hero-title {
+      font-family:var(--fmaq);
+      font-size:clamp(1.9rem,5vw,3.5rem);
+      color:var(--crema);line-height:1.12;margin-bottom:16px;
+      text-shadow:0 0 28px rgba(201,168,76,.14);
+    }
+    #hero-desc {
+      font-size:.86rem;color:rgba(214,201,176,.62);
+      max-width:580px;line-height:1.78;margin-bottom:20px;
+    }
+    .hero-meta {
+      display:flex;flex-wrap:wrap;gap:20px;
+      font-family:var(--fm);font-size:.68rem;color:var(--texto-m);
+    }
+    .hero-meta strong{color:var(--dorado);}
+
+    /* ==========================================
+       SEPARADOR
+    ========================================== */
+    .div { height:1px; background:linear-gradient(90deg,transparent,var(--dorado-d),transparent); }
+
+    /* ==========================================
+       NOTICIAS
+    ========================================== */
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(292px,1fr)); gap:18px; }
+
+    /* Tarjeta destacada */
+    .cf {
+      display:grid; grid-template-columns:1fr 1fr;
+      background:var(--negro-c);
+      border:1px solid var(--gris); border-top:3px solid var(--dorado);
+      margin-bottom:18px; overflow:hidden;
+      transition:border-top-color var(--t),box-shadow var(--t);
+      cursor:pointer;
+    }
+    .cf:hover{border-top-color:var(--alb);box-shadow:var(--sh),var(--sh-g);}
+    .cf-img{width:100%;min-height:260px;object-fit:cover;background:var(--negro-s);}
+    .cf-body{padding:30px 26px;display:flex;flex-direction:column;justify-content:center;gap:11px;}
+
+    /* Tarjeta normal */
+    .card {
+      background:var(--negro-c);
+      border:1px solid var(--gris); border-left:3px solid var(--dorado-d);
+      display:flex; flex-direction:column; overflow:hidden;
+      transition:border-left-color var(--t),transform var(--t),box-shadow var(--t);
+      cursor:pointer;
+    }
+    .card:hover{border-left-color:var(--dorado);transform:translateX(3px);box-shadow:var(--sh-g);}
+    .ct{width:100%;height:168px;object-fit:cover;background:var(--negro-s);}
+    .ct-ph{width:100%;height:168px;background:var(--negro-s);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--texto-d);}
+    .cb{padding:16px 18px;flex:1;display:flex;flex-direction:column;gap:9px;}
+
+    .csrc{font-family:var(--fp);font-size:.38rem;letter-spacing:.12em;text-transform:uppercase;}
+    .sn{color:#e8785a;} .ss{color:#a8a8c0;} .se{color:#5a8ae8;} .sb{color:#6ab8e8;} .sd{color:var(--texto-m);}
+
+    .ctitle{
+      font-family:var(--fmaq);font-size:.98rem;color:var(--crema);line-height:1.35;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    }
+    .cf .ctitle{font-size:1.18rem;-webkit-line-clamp:3;}
+    .csum{
+      font-size:.77rem;color:var(--texto-m);line-height:1.58;
+      display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1;
+    }
+    .cf .csum{-webkit-line-clamp:5;}
+    .cfoot{
+      display:flex;justify-content:space-between;align-items:center;
+      font-family:var(--fm);font-size:.66rem;color:var(--texto-d);
+      margin-top:auto;border-top:1px solid var(--gris);padding-top:10px;
+    }
+    .cread{color:var(--dorado);transition:color var(--t);}
+    .cread:hover{color:var(--dorado-c);}
+
+    /* ==========================================
+       LANZAMIENTOS
+    ========================================== */
+    #calendar{background-color:var(--negro-s);border-top:1px solid var(--gris);}
+    .ll{display:flex;flex-direction:column;gap:10px;}
+    .lr{
+      background:var(--negro-c);border:1px solid var(--gris);border-left:4px solid var(--dorado-d);
+      padding:18px 24px;display:grid;grid-template-columns:64px 1fr auto;
+      align-items:center;gap:20px;
+      transition:border-left-color var(--t),transform var(--t);
+    }
+    .lr:hover{border-left-color:var(--dorado);transform:translateX(3px);}
+    .ld{text-align:center;}
+    .lday{font-family:var(--fp);font-size:1.5rem;color:var(--dorado);line-height:1;}
+    .lmon{font-family:var(--fm);font-size:.62rem;text-transform:uppercase;color:var(--texto-m);letter-spacing:.1em;}
+    .lname{font-family:var(--fmaq);font-size:1rem;color:var(--crema);margin-bottom:4px;}
+    .ldet{font-size:.74rem;color:var(--texto-m);}
+    .lst{font-family:var(--fp);font-size:.38rem;letter-spacing:.09em;text-transform:uppercase;padding:5px 10px;border:1px solid;white-space:nowrap;}
+    .su{color:var(--dorado);border-color:var(--dorado-d);background:rgba(201,168,76,.07);}
+    .sk{color:#5de89a;border-color:rgba(93,232,154,.3);background:rgba(93,232,154,.07);}
+    .sf{color:#e87878;border-color:rgba(232,120,120,.3);background:rgba(232,120,120,.07);}
+
+    /* ==========================================
+       CIENCIA
+    ========================================== */
+    .pl{display:flex;flex-direction:column;gap:12px;}
+    .pr{
+      background:var(--negro-c);border:1px solid var(--gris);border-top:2px solid var(--cafe);
+      padding:20px 24px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;
+      transition:border-top-color var(--t);
+    }
+    .pr:hover{border-top-color:var(--dorado);}
+    .pcat{font-family:var(--fp);font-size:.38rem;letter-spacing:.12em;text-transform:uppercase;color:var(--alb);margin-bottom:8px;}
+    .ptit{font-family:var(--fmaq);font-size:.95rem;color:var(--crema);line-height:1.4;margin-bottom:6px;}
+    .pau{font-family:var(--fm);font-size:.66rem;color:var(--texto-d);}
+    .plink{
+      font-family:var(--fp);font-size:.36rem;color:var(--dorado);
+      border:1px solid var(--dorado-d);padding:7px 12px;white-space:nowrap;letter-spacing:.08em;
+      transition:background var(--t),color var(--t);
+    }
+    .plink:hover{background:var(--dorado);color:var(--negro);}
+
+    /* ==========================================
+       GALERÍA
+    ========================================== */
+    .gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:10px;}
+    .gi{
+      position:relative;overflow:hidden;aspect-ratio:4/3;
+      background:var(--negro-s);border:1px solid var(--gris);cursor:pointer;
+    }
+    .gi img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease,filter .5s ease;}
+    .gi:hover img{transform:scale(1.06);filter:brightness(.6);}
+    .gcap{
+      position:absolute;bottom:0;left:0;right:0;padding:10px 12px;
+      background:linear-gradient(transparent,rgba(10,10,10,.9));
+      font-family:var(--fm);font-size:.66rem;color:var(--crema);
+      transform:translateY(100%);transition:transform .3s ease;
+    }
+    .gi:hover .gcap{transform:translateY(0);}
+
+    /* ==========================================
+       TERMINAL WIDGET (decorativo)
+    ========================================== */
+    .tw{background:#060606;border:1px solid var(--dorado-d);font-family:var(--fm);font-size:.78rem;margin-bottom:26px;}
+    .twbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--negro-s);border-bottom:1px solid var(--dorado-d);}
+    .dot{width:10px;height:10px;border-radius:50%;}
+    .dr{background:#ff5f56;}.dy{background:#ffbd2e;}.dg{background:#27c93f;}
+    .tw-ttl{font-size:.62rem;color:var(--texto-d);margin-left:auto;}
+    .tw-body{padding:14px 18px;}
+    .tl{color:var(--texto);margin-bottom:4px;}
+    .tp{color:var(--dorado);}
+    .tok{color:#5de89a;}.terr{color:#e87878;}.tmu{color:var(--texto-m);}
+
+    /* ==========================================
+       ESTADOS
+    ========================================== */
+    .state{padding:54px 20px;text-align:center;color:var(--texto-d);font-family:var(--fp);font-size:.46rem;letter-spacing:.1em;line-height:2.4;}
+    .sico{display:block;font-size:1.8rem;margin-bottom:16px;}
+    .spin .sico{animation:spin 1.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ==========================================
+       LIGHTBOX
+    ========================================== */
+    #lb{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.95);align-items:center;justify-content:center;padding:20px;}
+    #lb.open{display:flex;}
+    .lbw{max-width:940px;width:100%;position:relative;}
+    #lbc{position:absolute;top:-40px;right:0;color:var(--texto-m);font-size:1.2rem;transition:color var(--t);}
+    #lbc:hover{color:var(--dorado);}
+    #lbi{width:100%;max-height:78vh;object-fit:contain;border:1px solid var(--gris);}
+    #lbcap{padding:13px 0 0;font-size:.76rem;color:var(--texto-m);text-align:center;}
+
+    /* ==========================================
+       FOOTER
+    ========================================== */
+    footer{border-top:2px solid var(--dorado-d);padding:36px 0 44px;margin-top:40px;}
+    .fi{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;}
+    .fi-info{font-family:var(--fm);font-size:.68rem;color:var(--texto-d);line-height:1.9;}
+    .fi-info strong{color:var(--texto-m);}
+    .fi-links{display:flex;gap:18px;}
+    .fi-links a{font-family:var(--fm);font-size:.68rem;color:var(--texto-m);transition:color var(--t);}
+    .fi-links a:hover{color:var(--dorado);}
+
+    /* ==========================================
+       RESPONSIVE
+    ========================================== */
+    @media(max-width:780px){
+      nav,#ts{display:none;}
+      .cf{grid-template-columns:1fr;}
+      .cf-img{min-height:200px;}
+      .lr{grid-template-columns:56px 1fr;}
+      .lst{grid-column:2;}
+      .fi{flex-direction:column;align-items:flex-start;}
+      .pr{grid-template-columns:1fr;}
+    }
+    @media(max-width:480px){
+      .container{padding:0 14px;}
+      section{padding:52px 0;}
+      .hero-c{padding:44px 14px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+============================================================ -->
+<header>
+  <div class="container hdr">
+    <div class="logo">ORBITAL<em>DAILY</em>.sh<span class="cursor"></span></div>
+
+    <nav aria-label="Secciones">
+      <a href="#news">Noticias</a>
+      <a href="#calendar">Lanzamientos</a>
+      <a href="#science">Ciencia</a>
+      <a href="#gallery">Galería</a>
+    </nav>
+
+    <div class="hdr-r">
+      <span id="ts" aria-live="polite">—</span>
+      <div class="vpill" title="Visitas totales" aria-label="Contador de visitas">
+        <div class="vdot" aria-hidden="true"></div>
+        VISITAS:&nbsp;<span id="vc">—</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     HERO — NASA APOD del día
+============================================================ -->
+<section id="hero" aria-label="Imagen astronómica del día">
+  <div id="hero-bg" role="img" aria-label="Imagen espacial destacada"></div>
+  <div class="container">
+    <div class="hero-c">
+      <div class="hero-badge">NASA · APOD · Imagen del Día</div>
+      <h1 id="hero-title">CARGANDO EL COSMOS<span class="cursor"></span></h1>
+      <p id="hero-desc"></p>
+      <div class="hero-meta" id="hero-meta"></div>
+    </div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- ============================================================
+     NOTICIAS
+============================================================ -->
+<section id="news" aria-label="Noticias espaciales">
+  <div class="container">
+    <div class="sh">
+      <div class="sh-label">// transmisión en vivo</div>
+      <h2 class="sh-title">Últimas Noticias</h2>
+      <div class="sh-line"></div>
+    </div>
+    <div id="news-wrap">
+      <div class="state spin"><span class="sico" aria-hidden="true">⊙</span>RECIBIENDO_SEÑAL...</div>
+    </div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- ============================================================
+     LANZAMIENTOS
+============================================================ -->
+<section id="calendar" aria-label="Lanzamientos SpaceX">
+  <div class="container">
+    <div class="sh">
+      <div class="sh-label">// agenda · spacex</div>
+      <h2 class="sh-title">Próximos Lanzamientos</h2>
+      <div class="sh-line"></div>
+    </div>
+    <div id="launches-wrap">
+      <div class="state spin"><span class="sico" aria-hidden="true">⊙</span>CALCULANDO_TRAYECTORIAS...</div>
+    </div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- ============================================================
+     CIENCIA — arXiv
+============================================================ -->
+<section id="science" aria-label="Ciencia reciente arXiv">
+  <div class="container">
+    <div class="sh">
+      <div class="sh-label">// arxiv · astrofísica</div>
+      <h2 class="sh-title">Ciencia Reciente</h2>
+      <div class="sh-line"></div>
+    </div>
+    <div id="science-wrap">
+      <div class="state spin"><span class="sico" aria-hidden="true">⊙</span>CONSULTANDO_ARCHIVO...</div>
+    </div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- ============================================================
+     GALERÍA — NASA APOD múltiples
+============================================================ -->
+<section id="gallery" aria-label="Galería NASA APOD">
+  <div class="container">
+    <div class="sh">
+      <div class="sh-label">// galería · nasa apod</div>
+      <h2 class="sh-title">Archivo Visual</h2>
+      <div class="sh-line"></div>
+    </div>
+
+    <!-- Ventana terminal decorativa -->
+    <div class="tw">
+      <div class="twbar">
+        <span class="dot dr"></span>
+        <span class="dot dy"></span>
+        <span class="dot dg"></span>
+        <span class="tw-ttl">orbital-daily — nasa-fetch — 80×24</span>
+      </div>
+      <div class="tw-body" id="tlog">
+        <div class="tl"><span class="tp">❯</span> fetch nasa.gov/apod --random --count=8</div>
+        <div class="tl tmu">Contactando api.nasa.gov...</div>
+      </div>
+    </div>
+
+    <div class="gg" id="gallery-wrap">
+      <div class="state spin" style="grid-column:1/-1"><span class="sico" aria-hidden="true">⊙</span>REVELANDO_IMÁGENES...</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer>
+  <div class="container fi">
+    <div class="fi-info">
+      <strong>Orbital Daily</strong> · Portal espacial estático · GitHub Pages<br>
+      Fuentes: NASA APOD · SpaceX API v5 · Spaceflight News API · arXiv<br>
+      Caché local 24 h · Sin backend · Sin datos inventados
+    </div>
+    <div class="fi-links">
+      <a href="https://api.nasa.gov"              target="_blank" rel="noopener">NASA API</a>
+      <a href="https://github.com/r-spacex/SpaceX-API" target="_blank" rel="noopener">SpaceX API</a>
+      <a href="https://arxiv.org"                 target="_blank" rel="noopener">arXiv</a>
+      <a href="https://spaceflightnewsapi.net"    target="_blank" rel="noopener">SNAPI</a>
+    </div>
+  </div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div id="lb" role="dialog" aria-modal="true" aria-label="Imagen ampliada">
+  <div class="lbw">
+    <button id="lbc" aria-label="Cerrar">✕</button>
+    <img id="lbi" src="" alt="" />
+    <p id="lbcap"></p>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     LÓGICA
+============================================================ -->
+<script>
+"use strict";
+
+/*
+  CONFIG — edita aquí sin tocar el resto del código.
+
+  AÑADIR FUENTES DE NOTICIAS:
+    SNAPI acepta &news_site=NASA, &news_site=SpaceX, etc.
+    Añade más URLs a ARXIV_FEEDS para más categorías de ciencia.
+
+  CLAVE NASA (DEMO_KEY = 30 req/h):
+    Regístrate gratis en https://api.nasa.gov → reemplaza en NASA_KEY.
+
+  CONTADOR PROPIO:
+    Si clonas el proyecto, cambia COUNTER_NS o COUNTER_KEY.
+*/
+const C = {
+  NASA_KEY:    'DEMO_KEY',
+  GALLERY_N:   8,
+  NEWS_N:      13,
+  LAUNCH_N:    8,
+  ARXIV_N:     6,
+  TTL:         86400000, // 24 h en ms
+
+  COUNTER_NS:  'orbital-daily-retro-2024',
+  COUNTER_KEY: 'visits',
+
+  APOD:     'https://api.nasa.gov/planetary/apod',
+  SPACEX:   'https://api.spacexdata.com/v5/launches',
+  NEWS:     'https://api.spaceflightnewsapi.net/v4/articles/?limit=13&ordering=-published_at',
+  COUNT:    'https://api.countapi.xyz/hit',
+  R2J:      'https://api.rss2json.com/v1/api.json?rss_url=',
+  FEEDS:    [
+    'https://export.arxiv.org/rss/astro-ph',
+    'https://export.arxiv.org/rss/cs.AI',
+    'https://export.arxiv.org/rss/physics',
+  ],
+};
+
+/* ============================================================
+   UTILIDADES
+============================================================ */
+const san   = s => typeof s==='string' ? s.replace(/</g,'&lt;').replace(/>/g,'&gt;').trim() : '';
+const safeU = s => { try{const u=new URL(s);return(u.protocol==='https:'||u.protocol==='http:')?u.href:null;}catch{return null;} };
+const fmtD  = d => { try{return new Date(d).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});}catch{return d||'—';} };
+
+function dayMon(d) {
+  try { const dt=new Date(d); return {day:dt.getDate(),mon:dt.toLocaleDateString('es-ES',{month:'short'}).replace('.','').toUpperCase()}; }
+  catch { return {day:'?',mon:'???'}; }
+}
+
+const stripT = s => (s||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').trim();
+
+function srcS(name) {
+  const n=(name||'').toLowerCase();
+  if(n.includes('nasa'))   return ['csrc sn','▶ NASA'];
+  if(n.includes('spacex')) return ['csrc ss','▶ SpaceX'];
+  if(n.includes('blue'))   return ['csrc sb','▶ Blue Origin'];
+  if(n.includes('esa'))    return ['csrc se','▶ ESA'];
+  return ['csrc sd','▶ '+san(name)];
+}
+
+function mk(tag,cls,txt) {
+  const e=document.createElement(tag);
+  if(cls) e.className=cls;
+  if(txt!==undefined) e.textContent=txt;
+  return e;
+}
+
+function showSt(wrap,ico,msg,loading=false) {
+  wrap.innerHTML='';
+  const b=mk('div','state'+(loading?' spin':''));
+  const i=mk('span','sico'); i.setAttribute('aria-hidden','true'); i.textContent=ico;
+  b.appendChild(i); b.appendChild(mk('p',null,msg));
+  wrap.appendChild(b);
+}
+
+function tlog(msg,cls='tl') {
+  const t=document.getElementById('tlog'); if(!t)return;
+  t.appendChild(mk('div',cls,msg));
+}
+
+/* ============================================================
+   CACHÉ
+============================================================ */
+const cSet = (k,d) => { try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),data:d}));}catch{} };
+const cGet = (k,ttl) => { try{const r=localStorage.getItem(k);if(!r)return null;const{ts,data}=JSON.parse(r);return(Date.now()-ts<ttl)?data:null;}catch{return null;} };
+
+async function fc(key,url,ttl=C.TTL) {
+  const hit=cGet(key,ttl); if(hit)return hit;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const d=await r.json(); cSet(key,d); return d;
+}
+
+/* ============================================================
+   CONTADOR DE VISITAS
+   CountAPI — gratis, sin registro.
+   Cada carga de página suma 1 al contador en sus servidores.
+============================================================ */
+async function loadCounter() {
+  const el=document.getElementById('vc');
+  try {
+    const r=await fetch(`${C.COUNT}/${C.COUNTER_NS}/${C.COUNTER_KEY}`);
+    const d=await r.json();
+    if(typeof d.value==='number') el.textContent=d.value.toLocaleString('es-ES');
+  } catch { el.textContent='—'; }
+}
+
+/* ============================================================
+   HERO — NASA APOD
+============================================================ */
+async function loadHero() {
+  try {
+    const d=await fc('apod_h',`${C.APOD}?api_key=${C.NASA_KEY}`);
+    const bg=document.getElementById('hero-bg');
+    const title=document.getElementById('hero-title');
+    const desc=document.getElementById('hero-desc');
+    const meta=document.getElementById('hero-meta');
+
+    const img=safeU(d.hdurl||d.url);
+    if(img&&d.media_type!=='video') { bg.style.backgroundImage=`url(${img})`; bg.setAttribute('aria-label',san(d.title)); }
+
+    title.textContent=(d.title||'Imagen del Día').toUpperCase();
+    const txt=d.explanation||'';
+    desc.textContent=txt.length>280?txt.slice(0,277)+'…':txt;
+
+    const de=mk('span'); de.innerHTML=`<strong>${fmtD(d.date)}</strong>`;
+    meta.appendChild(de);
+    if(d.copyright) meta.appendChild(mk('span',null,'Crédito: '+d.copyright.trim()));
+  } catch {
+    document.getElementById('hero-title').textContent='PORTAL ESPACIAL';
+    document.getElementById('hero-desc').textContent='Imagen no disponible — revisando señal.';
+  }
+}
+
+/* ============================================================
+   NOTICIAS — Spaceflight News API
+   API pública JSON con CORS. Agrega NASA, SpaceX, ESA y más.
+============================================================ */
+async function loadNews() {
+  const wrap=document.getElementById('news-wrap');
+  try {
+    const d=await fc('snapi',C.NEWS);
+    const items=d?.results||[];
+    if(!items.length)throw new Error('empty');
+    wrap.innerHTML='';
+    if(items[0]) wrap.appendChild(buildFeat(items[0]));
+    const grid=mk('div','grid');
+    items.slice(1).forEach(a=>grid.appendChild(buildCard(a)));
+    wrap.appendChild(grid);
+  } catch { showSt(wrap,'⬡','SIN_DATOS_VERIFICABLES_EN_ESTE_MOMENTO'); }
+}
+
+function buildFeat(a) {
+  const card=mk('div','cf');
+  const link=safeU(a.url);
+  const [cls,lbl]=srcS(a.news_site);
+  const iUrl=safeU(a.image_url);
+
+  if(iUrl){const img=mk('img','cf-img');img.src=iUrl;img.alt=san(a.title);img.loading='lazy';card.appendChild(img);}
+
+  const body=mk('div','cf-body');
+  body.appendChild(mk('div',cls,lbl));
+  body.appendChild(mk('h2','ctitle',san(a.title)));
+  body.appendChild(mk('p','csum',san(a.summary)));
+
+  const foot=mk('div','cfoot');
+  foot.appendChild(mk('span',null,fmtD(a.published_at)));
+  if(link){
+    const al=mk('a','cread','Leer →');al.href=link;al.target='_blank';al.rel='noopener noreferrer';
+    foot.appendChild(al);
+    card.addEventListener('click',e=>{if(e.target.tagName!=='A')window.open(link,'_blank','noopener');});
+    card.style.cursor='pointer';
+  }
+  body.appendChild(foot);
+  card.appendChild(body);
+  return card;
+}
+
+function buildCard(a) {
+  const card=mk('div','card');
+  const link=safeU(a.url);
+  const [cls,lbl]=srcS(a.news_site);
+  const iUrl=safeU(a.image_url);
+
+  if(iUrl){const img=mk('img','ct');img.src=iUrl;img.alt=san(a.title);img.loading='lazy';card.appendChild(img);}
+  else card.appendChild(mk('div','ct-ph','⬡'));
+
+  const body=mk('div','cb');
+  body.appendChild(mk('div',cls,lbl));
+  body.appendChild(mk('h3','ctitle',san(a.title)));
+  body.appendChild(mk('p','csum',san(a.summary)));
+
+  const foot=mk('div','cfoot');
+  foot.appendChild(mk('span',null,fmtD(a.published_at)));
+  if(link){
+    const al=mk('a','cread','Leer →');al.href=link;al.target='_blank';al.rel='noopener noreferrer';
+    foot.appendChild(al);
+    card.addEventListener('click',e=>{if(e.target.tagName!=='A')window.open(link,'_blank','noopener');});
+  }
+  body.appendChild(foot);
+  card.appendChild(body);
+  return card;
+}
+
+/* ============================================================
+   LANZAMIENTOS — SpaceX API v5 (sin clave, CORS nativo)
+============================================================ */
+async function loadLaunches() {
+  const wrap=document.getElementById('launches-wrap');
+  try {
+    const d=await fc('sx_up',`${C.SPACEX}/upcoming`);
+    const sorted=d.filter(l=>l.date_utc).sort((a,b)=>new Date(a.date_utc)-new Date(b.date_utc)).slice(0,C.LAUNCH_N);
+    if(!sorted.length)throw new Error('empty');
+    renderL(sorted,wrap);
+  } catch {
+    try { const lat=await fc('sx_lat',`${C.SPACEX}/latest`); renderL([lat],wrap); }
+    catch { showSt(wrap,'⬡','SIN_DATOS_VERIFICABLES_EN_ESTE_MOMENTO'); }
+  }
+}
+
+function renderL(launches,wrap) {
+  wrap.innerHTML='';
+  const list=mk('div','ll');
+  for(const l of launches){
+    const row=mk('div','lr');
+    const {day,mon}=dayMon(l.date_utc);
+    const ld=mk('div','ld');
+    ld.appendChild(mk('div','lday',''+day));
+    ld.appendChild(mk('div','lmon',mon));
+    const info=mk('div');
+    info.appendChild(mk('div','lname',san(l.name||'Lanzamiento SpaceX')));
+    const det=l.details?l.details.slice(0,90)+(l.details.length>90?'…':''):'Detalles pendientes';
+    info.appendChild(mk('div','ldet',san(det)));
+    const sc=l.upcoming?'su':(l.success?'sk':'sf');
+    const st=l.upcoming?'PRÓXIMO':(l.success?'ÉXITO':'FALLIDO');
+    row.appendChild(ld); row.appendChild(info); row.appendChild(mk('div','lst '+sc,st));
+    list.appendChild(row);
+  }
+  wrap.appendChild(list);
+}
+
+/* ============================================================
+   CIENCIA — arXiv via rss2json
+============================================================ */
+async function loadScience() {
+  const wrap=document.getElementById('science-wrap');
+  for(const feed of C.FEEDS){
+    try {
+      const url=C.R2J+encodeURIComponent(feed);
+      const d=await fc('ax_'+feed.split('/').pop(),url);
+      const items=(d?.items||[]).slice(0,C.ARXIV_N);
+      if(items.length){ renderSci(items,wrap); return; }
+    } catch {}
+  }
+  showSt(wrap,'⬡','SIN_DATOS_VERIFICABLES_EN_ESTE_MOMENTO');
+}
+
+function renderSci(papers,wrap) {
+  wrap.innerHTML='';
+  const list=mk('div','pl');
+  for(const p of papers){
+    const row=mk('div','pr');
+    const main=mk('div');
+    main.appendChild(mk('div','pcat','astrofísica · arXiv'));
+    main.appendChild(mk('div','ptit',san(stripT(p.title))));
+    main.appendChild(mk('div','pau',san(p.author||'Autores no especificados')));
+    row.appendChild(main);
+    const link=safeU(p.link);
+    if(link){
+      const a=mk('a','plink','VER →');a.href=link;a.target='_blank';a.rel='noopener noreferrer';
+      row.appendChild(a);
+    }
+    list.appendChild(row);
+  }
+  wrap.appendChild(list);
+}
+
+/* ============================================================
+   GALERÍA — NASA APOD aleatorio
+============================================================ */
+async function loadGallery() {
+  const wrap=document.getElementById('gallery-wrap');
+  try {
+    const d=await fc('apod_g',`${C.APOD}?api_key=${C.NASA_KEY}&count=${C.GALLERY_N}`);
+    const photos=(Array.isArray(d)?d:[]).filter(i=>i.media_type==='image');
+    if(!photos.length)throw new Error('empty');
+
+    tlog('✓ '+photos.length+' imágenes recibidas','tl tok');
+    tlog('✓ Renderizando galería...','tl tok');
+
+    wrap.innerHTML='';
+    for(const p of photos){
+      const url=safeU(p.url); if(!url)continue;
+      const item=mk('div','gi');
+      item.setAttribute('tabindex','0');
+      item.setAttribute('role','button');
+      item.setAttribute('aria-label',san(p.title));
+      const img=mk('img'); img.src=url;img.alt=san(p.title);img.loading='lazy';
+      const cap=mk('div','gcap',san(p.title));
+      item.appendChild(img); item.appendChild(cap);
+      wrap.appendChild(item);
+      const open=()=>openLb(url,san(p.title));
+      item.addEventListener('click',open);
+      item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open();});
+    }
+  } catch {
+    tlog('✗ Error al obtener imágenes','tl terr');
+    showSt(wrap,'⬡','SIN_IMÁGENES_DISPONIBLES');
+  }
+}
+
+/* ============================================================
+   LIGHTBOX
+============================================================ */
+function openLb(src,cap){
+  document.getElementById('lbi').src=src;
+  document.getElementById('lbi').alt=cap;
+  document.getElementById('lbcap').textContent=cap;
+  document.getElementById('lb').classList.add('open');
+}
+function closeLb(){
+  document.getElementById('lb').classList.remove('open');
+  document.getElementById('lbi').src='';
+}
+document.getElementById('lbc').addEventListener('click',closeLb);
+document.getElementById('lb').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLb();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+
+/* ============================================================
+   TIMESTAMP
+============================================================ */
+function updateTs(){
+  const ts=localStorage.getItem('orbital_ts2'); if(!ts)return;
+  const d=new Date(parseInt(ts));
+  document.getElementById('ts').textContent=
+    'act. '+d.toLocaleDateString('es-ES',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ============================================================
+   INIT — todo en paralelo, cada sección es independiente
+============================================================ */
+async function init(){
+  loadCounter();
+  await Promise.allSettled([loadHero(),loadNews(),loadLaunches(),loadScience(),loadGallery()]);
+  localStorage.setItem('orbital_ts2',Date.now().toString());
+  updateTs();
+}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
