@@ -609,11 +609,16 @@ const C = {
 ============================================================ */
 const san   = s => typeof s==='string' ? s.replace(/</g,'&lt;').replace(/>/g,'&gt;').trim() : '';
 const safeU = s => { try{const u=new URL(s);return(u.protocol==='https:'||u.protocol==='http:')?u.href:null;}catch{return null;} };
-const fmtD  = d => { try{return new Date(d).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});}catch{return d||'—';} };
+const fmtD  = d => {
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+};
 
 function dayMon(d) {
-  try { const dt=new Date(d); return {day:dt.getDate(),mon:dt.toLocaleDateString('es-ES',{month:'short'}).replace('.','').toUpperCase()}; }
-  catch { return {day:'?',mon:'???'}; }
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return {day:'?',mon:'???'};
+  return {day:dt.getDate(),mon:dt.toLocaleDateString('es-ES',{month:'short'}).replace('.','').toUpperCase()};
 }
 
 const stripT = s => (s||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').trim();
@@ -653,11 +658,29 @@ function tlog(msg,cls='tl') {
 const cSet = (k,d) => { try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),data:d}));}catch{} };
 const cGet = (k,ttl) => { try{const r=localStorage.getItem(k);if(!r)return null;const{ts,data}=JSON.parse(r);return(Date.now()-ts<ttl)?data:null;}catch{return null;} };
 
+async function jfetch(url, timeout=12000) {
+  const ctl = new AbortController();
+  const id = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 async function fc(key,url,ttl=C.TTL) {
   const hit=cGet(key,ttl); if(hit)return hit;
-  const r=await fetch(url);
-  if(!r.ok)throw new Error(`HTTP ${r.status}`);
-  const d=await r.json(); cSet(key,d); return d;
+  try {
+    const d=await jfetch(url);
+    cSet(key,d);
+    return d;
+  } catch (err) {
+    const stale = cGet(key, Number.MAX_SAFE_INTEGER);
+    if (stale) return stale;
+    throw err;
+  }
 }
 
 /* ============================================================
@@ -668,8 +691,7 @@ async function fc(key,url,ttl=C.TTL) {
 async function loadCounter() {
   const el=document.getElementById('vc');
   try {
-    const r=await fetch(`${C.COUNT}/${C.COUNTER_NS}/${C.COUNTER_KEY}`);
-    const d=await r.json();
+    const d=await jfetch(`${C.COUNT}/${C.COUNTER_NS}/${C.COUNTER_KEY}`);
     if(typeof d.value==='number') el.textContent=d.value.toLocaleString('es-ES');
   } catch { el.textContent='—'; }
 }
@@ -684,6 +706,7 @@ async function loadHero() {
     const title=document.getElementById('hero-title');
     const desc=document.getElementById('hero-desc');
     const meta=document.getElementById('hero-meta');
+    meta.innerHTML='';
 
     const img=safeU(d.hdurl||d.url);
     if(img&&d.media_type!=='video') { bg.style.backgroundImage=`url(${img})`; bg.setAttribute('aria-label',san(d.title)); }
@@ -692,7 +715,9 @@ async function loadHero() {
     const txt=d.explanation||'';
     desc.textContent=txt.length>280?txt.slice(0,277)+'…':txt;
 
-    const de=mk('span'); de.innerHTML=`<strong>${fmtD(d.date)}</strong>`;
+    const de=mk('span');
+    const deStrong = mk('strong', null, fmtD(d.date));
+    de.appendChild(deStrong);
     meta.appendChild(de);
     if(d.copyright) meta.appendChild(mk('span',null,'Crédito: '+d.copyright.trim()));
   } catch {
@@ -870,7 +895,12 @@ async function loadGallery() {
       wrap.appendChild(item);
       const open=()=>openLb(url,san(p.title));
       item.addEventListener('click',open);
-      item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open();});
+      item.addEventListener('keydown',e=>{
+        if(e.key==='Enter'||e.key===' '){
+          e.preventDefault();
+          open();
+        }
+      });
     }
   } catch {
     tlog('✗ Error al obtener imágenes','tl terr');
@@ -899,8 +929,11 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
    TIMESTAMP
 ============================================================ */
 function updateTs(){
-  const ts=localStorage.getItem('orbital_ts2'); if(!ts)return;
+  let ts = null;
+  try { ts = localStorage.getItem('orbital_ts2'); } catch { return; }
+  if(!ts)return;
   const d=new Date(parseInt(ts));
+  if (Number.isNaN(d.getTime())) return;
   document.getElementById('ts').textContent=
     'act. '+d.toLocaleDateString('es-ES',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 }
@@ -911,7 +944,7 @@ function updateTs(){
 async function init(){
   loadCounter();
   await Promise.allSettled([loadHero(),loadNews(),loadLaunches(),loadScience(),loadGallery()]);
-  localStorage.setItem('orbital_ts2',Date.now().toString());
+  try { localStorage.setItem('orbital_ts2',Date.now().toString()); } catch {}
   updateTs();
 }
 
